@@ -1,7 +1,7 @@
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, inArray, and } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
-import type { Game } from '../types/game';
+import type { Game, Category, Publisher } from '../types/game';
 
 const gameSelection = {
     id: games.id,
@@ -66,4 +66,69 @@ export async function getAllGameIds(db: Database): Promise<number[]> {
 export async function getGameById(db: Database, id: number): Promise<Game | null> {
     const row = await baseGamesQuery(db).where(eq(games.id, id)).get();
     return row ? mapGame(row) : null;
+}
+
+/**
+ * Fetch all categories, ordered by name.
+ *
+ * @param db - The database client (injectable for testing)
+ * @returns An array of categories sorted alphabetically by name
+ */
+export async function getAllCategories(db: Database): Promise<Category[]> {
+    return db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name));
+}
+
+/**
+ * Fetch all publishers, ordered by name.
+ *
+ * @param db - The database client (injectable for testing)
+ * @returns An array of publishers sorted alphabetically by name
+ */
+export async function getAllPublishers(db: Database): Promise<Publisher[]> {
+    return db.select({ id: publishers.id, name: publishers.name }).from(publishers).orderBy(asc(publishers.name));
+}
+
+/**
+ * Fetch games filtered by zero or more categories and/or publishers.
+ *
+ * If no filters are provided, returns all games. If both categoryIds and publisherIds are provided,
+ * games must match AT LEAST ONE category AND AT LEAST ONE publisher (AND logic between filter types).
+ *
+ * @param db - The database client (injectable for testing)
+ * @param categoryIds - Optional array of category IDs to filter by (OR logic within the array)
+ * @param publisherIds - Optional array of publisher IDs to filter by (OR logic within the array)
+ * @returns An array of games matching the filter criteria, ordered by title
+ */
+export async function getGamesByFilters(
+    db: Database,
+    categoryIds?: number[],
+    publisherIds?: number[]
+): Promise<Game[]> {
+    // No filters: return all games
+    if (!categoryIds || categoryIds.length === 0) {
+        if (!publisherIds || publisherIds.length === 0) {
+            const rows = await baseGamesQuery(db).orderBy(asc(games.title));
+            return rows.map(mapGame);
+        }
+        // Only publisher filter
+        const rows = await baseGamesQuery(db)
+            .where(inArray(games.publisherId, publisherIds))
+            .orderBy(asc(games.title));
+        return rows.map(mapGame);
+    }
+
+    // Only category filter or both filters
+    if (!publisherIds || publisherIds.length === 0) {
+        // Only category filter
+        const rows = await baseGamesQuery(db)
+            .where(inArray(games.categoryId, categoryIds))
+            .orderBy(asc(games.title));
+        return rows.map(mapGame);
+    }
+
+    // Both filters: combine with AND logic
+    const rows = await baseGamesQuery(db)
+        .where(and(inArray(games.categoryId, categoryIds), inArray(games.publisherId, publisherIds)))
+        .orderBy(asc(games.title));
+    return rows.map(mapGame);
 }

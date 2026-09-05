@@ -1,0 +1,168 @@
+---
+import type { Category, Publisher } from '../types/game';
+
+/**
+ * Props for the FilterPanel component.
+ *
+ * @property {Category[]} categories - Array of available categories to filter by
+ * @property {Publisher[]} publishers - Array of available publishers to filter by
+ */
+interface Props {
+    categories: Category[];
+    publishers: Publisher[];
+}
+
+const { categories, publishers } = Astro.props;
+---
+
+<div class="mb-8 p-6 bg-slate-700 rounded-lg" data-testid="filter-panel">
+    <h2 class="text-xl font-semibold mb-6 text-slate-100">Filter Games</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Category Filter Section */}
+        <div>
+            <h3 class="text-lg font-medium mb-4 text-slate-100" id="category-filter-label">
+                By Category
+            </h3>
+            <div
+                class="space-y-2"
+                role="group"
+                aria-labelledby="category-filter-label"
+                data-testid="category-filter-group"
+            >
+                {categories.map((category) => (
+                    <label class="flex items-center cursor-pointer group">
+                        <input
+                            type="checkbox"
+                            value={category.id}
+                            class="w-4 h-4 rounded border-slate-500 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                            aria-label={`Filter by ${category.name}`}
+                            data-testid={`category-checkbox-${category.id}`}
+                            data-category-id={category.id}
+                        />
+                        <span class="ml-3 text-slate-200 group-focus-within:ring-2 group-focus-within:ring-blue-500 group-focus-within:ring-offset-2 group-focus-within:ring-offset-slate-700 rounded px-2 py-1">
+                            {category.name}
+                        </span>
+                    </label>
+                ))}
+            </div>
+        </div>
+
+        {/* Publisher Filter Section */}
+        <div>
+            <h3 class="text-lg font-medium mb-4 text-slate-100" id="publisher-filter-label">
+                By Publisher
+            </h3>
+            <div
+                class="space-y-2"
+                role="group"
+                aria-labelledby="publisher-filter-label"
+                data-testid="publisher-filter-group"
+            >
+                {publishers.map((publisher) => (
+                    <label class="flex items-center cursor-pointer group">
+                        <input
+                            type="checkbox"
+                            value={publisher.id}
+                            class="w-4 h-4 rounded border-slate-500 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                            aria-label={`Filter by ${publisher.name}`}
+                            data-testid={`publisher-checkbox-${publisher.id}`}
+                            data-publisher-id={publisher.id}
+                        />
+                        <span class="ml-3 text-slate-200 group-focus-within:ring-2 group-focus-within:ring-blue-500 group-focus-within:ring-offset-2 group-focus-within:ring-offset-slate-700 rounded px-2 py-1">
+                            {publisher.name}
+                        </span>
+                    </label>
+                ))}
+            </div>
+        </div>
+    </div>
+
+    {/* Reset Filters Button */}
+    <div class="mt-6">
+        <button
+            type="button"
+            class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-100 rounded font-medium transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            id="reset-filters-button"
+            data-testid="reset-filters-button"
+            aria-label="Clear all filters and show all games"
+        >
+            Reset Filters
+        </button>
+    </div>
+</div>
+
+<script>
+    // This script runs only in the browser and handles client-side filtering
+    const filterPanel = document.querySelector('[data-testid="filter-panel"]');
+    const gamesGrid = document.querySelector('[data-testid="games-grid"]');
+    const resetButton = document.getElementById('reset-filters-button');
+
+    if (filterPanel && gamesGrid) {
+        const categoryCheckboxes = filterPanel.querySelectorAll('input[data-category-id]');
+        const publisherCheckboxes = filterPanel.querySelectorAll('input[data-publisher-id]');
+        const gameCards = gamesGrid.querySelectorAll('[data-testid^="game-card-"]');
+
+        function getSelectedFilters() {
+            const categories = Array.from(categoryCheckboxes)
+                .filter((cb) => (cb as HTMLInputElement).checked)
+                .map((cb) => (cb as HTMLInputElement).value);
+
+            const publishers = Array.from(publisherCheckboxes)
+                .filter((pb) => (pb as HTMLInputElement).checked)
+                .map((pb) => (pb as HTMLInputElement).value);
+
+            return { categories, publishers };
+        }
+
+        function applyFilters() {
+            const { categories, publishers } = getSelectedFilters();
+
+            gameCards.forEach((card) => {
+                const cardElement = card as HTMLElement;
+                const cardCategoryId = cardElement.getAttribute('data-category-id');
+                const cardPublisherId = cardElement.getAttribute('data-publisher-id');
+
+                // If no filters, show all
+                if (categories.length === 0 && publishers.length === 0) {
+                    cardElement.style.display = '';
+                    return;
+                }
+
+                const categoryMatches = categories.length === 0 || categories.includes(cardCategoryId || '');
+                const publisherMatches = publishers.length === 0 || publishers.includes(cardPublisherId || '');
+
+                // Both filters must pass (AND logic)
+                if (categoryMatches && publisherMatches) {
+                    cardElement.style.display = '';
+                } else {
+                    cardElement.style.display = 'none';
+                }
+            });
+        }
+
+        // Add event listeners to all checkboxes
+        categoryCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', applyFilters);
+        });
+
+        publisherCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', applyFilters);
+        });
+
+        // Reset filters button
+        if (resetButton) {
+            resetButton.addEventListener('click', () => {
+                categoryCheckboxes.forEach((cb) => {
+                    (cb as HTMLInputElement).checked = false;
+                });
+                publisherCheckboxes.forEach((pb) => {
+                    (pb as HTMLInputElement).checked = false;
+                });
+                applyFilters();
+                // Focus on the reset button for accessibility
+                resetButton.focus();
+            });
+        }
+    }
+</script>
