@@ -68,3 +68,78 @@ Refer to technology-specific instruction files:
    - Test keyboard navigation
    - Check focus states
    - Validate semantic structure
+
+## TypeScript Formatting Rules
+
+### Explicit Type Annotations
+
+**All functions must have explicit parameter and return type annotations.** This ensures type safety, clarity, and enables tools like TypeScript 7's native compiler (`tsgo`) to verify the code.
+
+```ts
+// ✅ Good
+async function getAllGames(db: Database): Promise<GameWithRelations[]> {
+  // …
+}
+
+function formatPrice(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+interface Props {
+  game: GameWithRelations;
+  variant?: 'default' | 'featured';
+}
+
+// ❌ Bad — inferred types are not explicit
+async function getAllGames(db) {
+  // …
+}
+
+// ❌ Bad — no return type
+function formatPrice(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+```
+
+### Comments and Documentation
+
+Follow the comment philosophy in [`comments.instructions.md`](comments.instructions.md):
+
+- **Export every function and component** in `db/`, `src/lib/`, and reusable `.astro` components with a **JSDoc/TSDoc comment block** describing purpose, parameters, and return value.
+- **Comment intent, not mechanics.** Explain *why* code exists or what non-obvious decision was made, not what the code already says.
+- **Keep comments current.** Treat outdated comments as bugs — update them with the code that touches them.
+
+### Naming Conventions
+
+- **Functions and variables:** camelCase
+- **Types, interfaces, and classes:** PascalCase
+- **Constants:** UPPER_SNAKE_CASE or camelCase (depending on mutability)
+- **Test files:** `<module>.test.ts`
+- **Astro components:** PascalCase (e.g., `GameCard.astro`)
+
+### Module Organization
+
+- **One responsibility per file.** Keep modules focused and easy to test and understand.
+- **Group related exports.** When a file exports multiple items, organize them logically (e.g., types first, then functions).
+- **Use named exports.** Prefer `export function X() {}` over default exports for better discoverability and refactoring.
+
+### Type Imports and Exports
+
+- Use `import type` for type-only imports to avoid accidental runtime dependencies.
+
+```ts
+import type { Game, Publisher } from './types';
+import { formatPrice } from './utils';
+```
+
+### Linting
+
+ESLint (`npm run lint`) enforces code quality across TypeScript and Astro files. The configuration includes rules for:
+
+- Unused variables and imports
+- Explicit return types on exported functions
+- Consistent naming conventions
+- No `any` types (unless explicitly justified)
+- Accessibility in Astro components
+
+Run `npm run lint` before committing. ESLint is also enforced in CI on pull requests to `main`.
