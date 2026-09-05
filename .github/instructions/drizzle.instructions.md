@@ -45,11 +45,29 @@ import { asc, count, eq } from 'drizzle-orm';
 import type { Database } from './db';
 import { games } from '../../db/schema';
 
+/**
+ * Fetch all game IDs from the database, ordered by title.
+ *
+ * @param db - The database client (injectable for testing with an in-memory database)
+ * @returns An array of game IDs sorted alphabetically by game title
+ */
 export async function getAllGameIds(db: Database): Promise<number[]> {
   const rows = await db.select({ id: games.id }).from(games).orderBy(asc(games.title));
   return rows.map((r) => r.id);
 }
 ```
+
+### Documentation Requirements
+
+**Every exported function in `db/` and `src/lib/` must have a TSDoc/JSDoc comment block** describing:
+
+1. **Purpose** — What the function does and why it exists
+2. **Parameters** — Type and meaning of each argument. For the `db` parameter, explicitly note that it is injectable for testing.
+3. **Return value** — What the function returns, including any guarantees (e.g., "ordered by title", "returns null if not found")
+
+See [`comments.instructions.md`](comments.instructions.md) for detailed examples and guidelines.
+
+### Patterns
 
 - Always `order by` a stable column (title) so static builds are deterministic.
 - Map raw rows to the app-facing `Game`/`Publisher`/`Category` types in one place; don't leak Drizzle row shapes into components.

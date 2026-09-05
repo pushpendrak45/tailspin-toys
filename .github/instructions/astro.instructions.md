@@ -19,6 +19,11 @@ import GameCard from '../components/GameCard.astro';
 import { getDatabase } from '../lib/db';
 import { getAllGames } from '../lib/games';
 
+/**
+ * Props for the home page.
+ *
+ * @property {string} title - The page title, displayed in the browser tab and page heading
+ */
 interface Props {
   title: string;
 }
@@ -31,6 +36,37 @@ const games = await getAllGames(getDatabase());
   {games.map((game) => <GameCard {game} />)}
 </Layout>
 ```
+
+### Component Props Documentation
+
+**Every reusable `.astro` component must document its `Props` interface with JSDoc comments.** This makes the component API self-explanatory and helps users understand what data to pass.
+
+```astro
+---
+import type { GameWithRelations } from '../types';
+
+/**
+ * Props for the GameCard component.
+ *
+ * @property {GameWithRelations} game - The game object with its related publisher and category
+ * @property {string} [variant="default"] - Visual style variant: "default", "featured", or "compact"
+ * @property {boolean} [showDescription=true] - Whether to display the full game description
+ */
+interface Props {
+  game: GameWithRelations;
+  variant?: 'default' | 'featured' | 'compact';
+  showDescription?: boolean;
+}
+
+const { game, variant = 'default', showDescription = true } = Astro.props;
+---
+
+<article class="game-card" data-testid={`game-card-${game.id}`}>
+  {/* … */}
+</article>
+```
+
+See [`comments.instructions.md`](comments.instructions.md) for detailed documentation guidelines.
 
 ## Layouts
 
